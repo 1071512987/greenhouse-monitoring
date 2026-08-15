@@ -1,0 +1,29 @@
+# Dependencies
+frontend/node_modules/
+
+# Build output
+frontend/dist/
+frontend/*.tsbuildinfo
+backend/bin/
+backend/greenhouse-server
+backend/greenhouse-server.exe
+
+# Runtime and test artifacts
+*.log
+coverage/
+.tmp/
+tmp/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
