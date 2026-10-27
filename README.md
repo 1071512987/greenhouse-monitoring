@@ -6,7 +6,7 @@
 
 - 单屏 Dashboard：环境指标、24 小时趋势、分区状态、系统健康度和异常提醒
 - 传感器中心：按设备类别浏览，支持查看全部设备汇总和在线状态
-- Agent 工作台：导入 JSON/CSV 温室观测数据，展示推理过程、建议动作和运行历史
+- 智能体中心：按业务拆分六类专职智能体，分别提供环境调控、精准施肥、机器狗巡检、RGBD 表型鉴定、作物模型和农机问答工作区
 - 全栈服务：React 前端通过 `/api` 访问 Go HTTP API，生产环境可由 Go 服务直接托管前端静态文件
 - 品牌化界面：使用华中农业大学与华农智能体视觉资源，主题色为 `#09803a`
 
@@ -74,6 +74,16 @@ go run ./cmd/server -frontend ..\frontend\dist
 
 浏览器访问 <http://127.0.0.1:8080/>，此时 Go 服务同时提供 API 和前端静态资源。
 
+## 制作免安装发布包
+
+在项目根目录运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1
+```
+
+脚本会生成 `release/HuanongZhikong-Windows-x64.zip`。接收方无需安装 Node.js 或 Go，完整解压后双击 `start.bat` 即可运行。
+
 ## 测试与检查
 
 ```powershell
@@ -98,7 +108,7 @@ npm run build
 
 ## 接入真实数据与 Agent
 
-目前后端提供可运行的内存数据与确定性规则引擎。接入真实项目时：
+当前环境控制智能体已连接后端的内存数据与确定性规则引擎；另外五类智能体已完成前端任务流和模型接口占位。接入真实项目时：
 
 1. 在 `backend/internal/store` 中替换或扩展数据源，实现传感器 API、数据库或消息队列接入。
 2. 实现 `backend/internal/agent` 中的 Agent 引擎边界，替换当前规则策略。

@@ -1,20 +1,24 @@
 import { useState, type ReactNode } from 'react'
 import {
-  Bot, ChevronRight, CloudSun, Cpu, Droplets, Gauge, LayoutDashboard,
-  Leaf, Menu, Radio, Router, Sprout, Sun, Thermometer, Wind, X,
+  Bot, ChevronRight, CloudSun, Cpu, Dog, Gauge, LayoutDashboard,
+  Leaf, Menu, MessageCircleQuestion, Radio, Router, ScanLine, Sprout,
+  Sun, TestTubes, Thermometer, Wind, X,
 } from 'lucide-react'
+import { agentCatalog, getAgentDefinition } from '../lib/agentCatalog'
 import { getSensorCategory, sensorCategories } from '../lib/sensorCatalog'
-import type { SensorCategoryId } from '../types'
+import type { AgentId, SensorCategoryId } from '../types'
 import agentLogo from '../assets/branding/huanong-agent-logo.webp'
 import brandWordmark from '../assets/branding/huanong-zhikong-wordmark.png'
 import hzauLogo from '../assets/branding/hzau-logo-white.png'
 
-export type PageId = 'dashboard' | 'sensors' | 'agent'
+export type PageId = 'home' | 'plaza' | 'dashboard' | 'sensors' | 'agent'
 
 const navigation = [
+  { id: 'home' as const, label: '智能问答', hint: '返回首页', icon: MessageCircleQuestion },
+  { id: 'plaza' as const, label: '智能体广场', hint: '发现专业能力', icon: Sprout },
   { id: 'dashboard' as const, label: '环境总览', hint: '实时态势', icon: LayoutDashboard },
   { id: 'sensors' as const, label: '传感器', hint: '设备与数据', icon: Radio },
-  { id: 'agent' as const, label: 'Agent 决策', hint: '推理与执行', icon: Bot },
+  { id: 'agent' as const, label: '智能体中心', hint: '六类专职智能体', icon: Bot },
 ]
 
 const categoryIcons = {
@@ -28,22 +32,39 @@ const categoryIcons = {
   controller: Cpu,
 }
 
+const agentIcons = {
+  environment: Bot,
+  fertilizer: TestTubes,
+  'robot-dog': Dog,
+  phenotype: ScanLine,
+  'crop-model': Sprout,
+  'machinery-qa': MessageCircleQuestion,
+}
+
 interface AppShellProps {
   page: PageId
   sensorCategory: SensorCategoryId
+  agentId: AgentId
   onNavigate: (page: PageId) => void
   onSensorCategoryChange: (category: SensorCategoryId) => void
+  onAgentChange: (agent: AgentId) => void
   children: ReactNode
 }
 
-export function AppShell({ page, sensorCategory, onNavigate, onSensorCategoryChange, children }: AppShellProps) {
+export function AppShell({ page, sensorCategory, agentId, onNavigate, onSensorCategoryChange, onAgentChange, children }: AppShellProps) {
   const [open, setOpen] = useState(false)
   const current = navigation.find((item) => item.id === page)!
   const sensorCurrent = getSensorCategory(sensorCategory)
+  const agentCurrent = getAgentDefinition(agentId)
   const navigate = (next: PageId) => { onNavigate(next); setOpen(false) }
   const selectSensorCategory = (category: SensorCategoryId) => {
     onSensorCategoryChange(category)
     onNavigate('sensors')
+    setOpen(false)
+  }
+  const selectAgent = (nextAgent: AgentId) => {
+    onAgentChange(nextAgent)
+    onNavigate('agent')
     setOpen(false)
   }
 
@@ -57,21 +78,31 @@ export function AppShell({ page, sensorCategory, onNavigate, onSensorCategoryCha
           {navigation.map((item) => {
             const Icon = item.icon
             const isSensorParent = item.id === 'sensors'
+            const isAgentParent = item.id === 'agent'
+            const isGroup = isSensorParent || isAgentParent
             const active = page === item.id
-            return <div className={isSensorParent ? 'navigation__group' : undefined} key={item.id}>
+            return <div className={isGroup ? 'navigation__group' : undefined} key={item.id}>
               <button
-                className={active ? (isSensorParent && sensorCategory !== 'all' ? 'is-parent-active' : 'is-active') : ''}
-                onClick={() => isSensorParent ? selectSensorCategory('all') : navigate(item.id)}
-                aria-expanded={isSensorParent ? active : undefined}
+                className={active ? (isGroup ? 'is-parent-active' : 'is-active') : ''}
+                onClick={() => isSensorParent ? selectSensorCategory('all') : isAgentParent ? selectAgent(agentId) : navigate(item.id)}
+                aria-expanded={isGroup ? active : undefined}
               >
                 <Icon size={18} /><span><b>{item.label}</b><small>{item.hint}</small></span>
-                {isSensorParent ? <ChevronRight className={`navigation__chevron ${active ? 'is-open' : ''}`} size={14} /> : null}
+                {isGroup ? <ChevronRight className={`navigation__chevron ${active ? 'is-open' : ''}`} size={14} /> : null}
               </button>
               {isSensorParent && active ? <div className="navigation__sub" aria-label="传感器分类">
                 {sensorCategories.slice(1).map((category) => {
                   const CategoryIcon = categoryIcons[category.id as keyof typeof categoryIcons] ?? Gauge
                   return <button className={sensorCategory === category.id ? 'is-active' : ''} onClick={() => selectSensorCategory(category.id)} key={category.id}>
                     <CategoryIcon size={14} /><span><b>{category.label}</b><small>{category.model}</small></span>
+                  </button>
+                })}
+              </div> : null}
+              {isAgentParent && active ? <div className="navigation__sub navigation__sub--agents" aria-label="智能体分类">
+                {agentCatalog.map((agent) => {
+                  const AgentIcon = agentIcons[agent.id]
+                  return <button className={agentId === agent.id ? 'is-active' : ''} onClick={() => selectAgent(agent.id)} key={agent.id}>
+                    <AgentIcon size={14} /><span><b>{agent.shortLabel}</b><small>{agent.hint}</small></span>
                   </button>
                 })}
               </div> : null}
@@ -87,9 +118,9 @@ export function AppShell({ page, sensorCategory, onNavigate, onSensorCategoryCha
           <button className="menu-button" onClick={() => setOpen(true)} aria-label="打开菜单"><Menu size={20} /></button>
           <div className="topbar__title">
             {page === 'dashboard' ? <h1>环境总览</h1> : <h1 className="topbar__breadcrumb">
-              <span className="topbar__parent">{page === 'sensors' ? '传感器' : 'Agent 决策'}</span>
+              <span className="topbar__parent">{page === 'sensors' ? '传感器' : '智能体中心'}</span>
               <ChevronRight aria-hidden="true" />
-              <strong className="topbar__current">{page === 'sensors' ? sensorCurrent.label : '环境推理工作台'}</strong>
+              <strong className="topbar__current">{page === 'sensors' ? sensorCurrent.label : agentCurrent.label}</strong>
             </h1>}
           </div>
           <div className="topbar__meta"><time>{new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date())}</time><div className="topbar__institution"><img src={hzauLogo} alt="华中农业大学"/></div></div>

@@ -7,6 +7,7 @@ frontend/*.tsbuildinfo
 backend/bin/
 backend/greenhouse-server
 backend/greenhouse-server.exe
+release/
 
 # Runtime and test artifacts
 *.log
@@ -27,3 +28,7 @@ tmp/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local proposal documents and preview captures
+docs/*.docx
+portal-preview.png

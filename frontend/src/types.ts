@@ -1,5 +1,6 @@
 export type SensorStatus = 'online' | 'warning' | 'offline'
 export type SensorCategoryId = 'all' | 'air' | 'co2' | 'light' | 'leaf' | 'soil' | 'weather' | 'gateway' | 'controller'
+export type AgentId = 'environment' | 'fertilizer' | 'robot-dog' | 'phenotype' | 'crop-model' | 'machinery-qa'
 
 export interface SensorMetric {
   label: string
