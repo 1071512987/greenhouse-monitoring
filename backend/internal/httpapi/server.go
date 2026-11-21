@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"greenhouse-monitoring/internal/agent"
@@ -20,14 +21,20 @@ type server struct {
 	frontendDir string
 }
 
-func NewServer(frontendDir string) http.Handler {
-	s := &server{store: store.New(), engine: agent.NewRuleEngine(), frontendDir: frontendDir}
+func NewServer(frontendDir string, st *store.Store) http.Handler {
+	s := &server{store: st, engine: agent.NewRuleEngine(), frontendDir: frontendDir}
+	assistantURL := os.Getenv("ASSISTANT_API_URL")
+	if assistantURL == "" {
+		assistantURL = "http://211.69.141.64:8089/api/v1"
+	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/health", s.health)
 	mux.HandleFunc("GET /api/dashboard", s.dashboard)
 	mux.HandleFunc("GET /api/sensors", s.sensors)
+	mux.HandleFunc("GET /api/sensors/{id}/measurements", s.sensorMeasurements)
 	mux.HandleFunc("GET /api/agent/runs", s.agentRuns)
 	mux.HandleFunc("POST /api/agent/runs", s.createAgentRun)
+	mux.Handle("/api/assistant/", newAssistantProxy(assistantURL, os.Getenv("ASSISTANT_API_KEY")))
 	mux.HandleFunc("/", s.frontend)
 	return cors(mux)
 }
@@ -46,6 +53,25 @@ func (s *server) dashboard(w http.ResponseWriter, _ *http.Request) {
 }
 func (s *server) sensors(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.store.Sensors())
+}
+
+func (s *server) sensorMeasurements(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	page := atoiDefault(r.URL.Query().Get("page"), 1)
+	pageSize := atoiDefault(r.URL.Query().Get("pageSize"), 288)
+	result, err := s.store.MeasurementPoints(id, r.URL.Query().Get("metric"), page, pageSize)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "读取测量数据失败"})
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func atoiDefault(value string, fallback int) int {
+	if n, err := strconv.Atoi(value); err == nil {
+		return n
+	}
+	return fallback
 }
 func (s *server) agentRuns(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, s.store.Runs())
