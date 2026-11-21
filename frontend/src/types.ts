@@ -1,5 +1,6 @@
 export type SensorStatus = 'online' | 'warning' | 'offline'
 export type SensorCategoryId = 'all' | 'air' | 'co2' | 'light' | 'leaf' | 'soil' | 'weather' | 'gateway' | 'controller'
+export type SensorVendorId = 'xinpuhui' | 'huachuang'
 export type AgentId = 'environment' | 'fertilizer' | 'robot-dog' | 'phenotype' | 'crop-model' | 'machinery-qa'
 
 export interface SensorMetric {
@@ -18,6 +19,7 @@ export interface Observation {
 
 export interface Sensor {
   id: string
+	vendor: SensorVendorId
   name: string
   category: Exclude<SensorCategoryId, 'all'>
   type: string
@@ -31,6 +33,26 @@ export interface Sensor {
   status: SensorStatus
   battery: number
   lastSeen: string
+}
+
+export interface Measurement {
+	metric: string
+	label: string
+	value: number
+	unit: string
+	recordedAt: string
+}
+
+export interface MeasurementPoint {
+	timestamp: string
+	metrics: Measurement[]
+}
+
+export interface MeasurementPage {
+	items: MeasurementPoint[]
+	total: number
+	page: number
+	pageSize: number
 }
 
 export interface Zone { name: string; temperature: number; humidity: number; health: number }

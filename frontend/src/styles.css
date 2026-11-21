@@ -291,3 +291,36 @@ body { font-size: 14px; }
   .qa-sidebar { border-right: 0; border-bottom: 1px solid var(--line); }
   .chat-message { max-width: 92%; }
 }
+
+/* Sensor history detail */
+.sensor-detail-page { display: grid; grid-template-rows: auto auto minmax(260px, 1fr); gap: 12px; height: 100%; overflow: auto; }
+.sensor-detail-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.sensor-detail-back { display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; border: 1px solid var(--line); color: var(--pine); background: var(--paper); font-size: 12px; cursor: pointer; }
+.sensor-detail-back:hover { border-color: #8caf99; background: var(--theme-soft); }
+.sensor-detail-title { display: flex; align-items: center; gap: 10px; }
+.sensor-detail-title > span { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; color: var(--theme); background: var(--theme-soft); }
+.sensor-detail-title > div { display: grid; gap: 2px; }
+.sensor-detail-title small { color: var(--muted); font: 600 12px/1 'Roboto Condensed', sans-serif; }
+.sensor-detail-title h2 { margin: 0; font-size: 16px; }
+.sensor-detail-meta { color: var(--muted); font-size: 12px; }
+.sensor-detail-page > .sensor-metrics { flex: none; }
+.sensor-history-panel { display: flex; min-height: 0; flex-direction: column; }
+.sensor-history-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.sensor-history-toolbar > div { display: flex; align-items: center; gap: 8px; }
+.sensor-history-toolbar button { padding: 6px 10px; border: 1px solid var(--line); color: var(--pine); background: var(--paper); font-size: 12px; cursor: pointer; }
+.sensor-history-toolbar button:disabled { opacity: .45; cursor: default; }
+.sensor-history-chart { flex: 1; min-height: 240px; padding: 12px 12px 4px 4px; }
+
+@media (max-width: 700px) {
+  .sensor-detail-head { align-items: flex-start; flex-direction: column; }
+  .sensor-detail-meta { order: 3; }
+  .sensor-history-toolbar { align-items: flex-start; flex-direction: column; }
+}
+
+/* Sensor vendor submenu */
+.navigation__subgroup { display: grid; }
+.navigation__subgroup + .navigation__subgroup { margin-top: 4px; }
+.navigation__subgroup > button:first-child { min-height: 34px; }
+.navigation__subgroup > button:first-child::before { display: none; }
+.navigation__subgroup > button.is-vendor-active { color: #fff; }
+.navigation__subgroup > button.is-vendor-active small { color: rgba(255,255,255,.78); }

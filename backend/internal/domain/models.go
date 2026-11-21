@@ -12,6 +12,7 @@ type Observation struct {
 
 type Sensor struct {
 	ID           string         `json:"id"`
+	Vendor       string         `json:"vendor"`
 	Name         string         `json:"name"`
 	Category     string         `json:"category"`
 	Type         string         `json:"type"`
@@ -88,4 +89,27 @@ type AgentRun struct {
 	Records     int           `json:"records"`
 	CreatedAt   time.Time     `json:"createdAt"`
 	CompletedAt time.Time     `json:"completedAt"`
+}
+
+// Measurement 是归一化后的单条测量值，DeviceID 仅用于落库，不暴露给前端。
+type Measurement struct {
+	DeviceID   string  `json:"-"`
+	Metric     string  `json:"metric"`
+	Label      string  `json:"label"`
+	Value      float64 `json:"value"`
+	Unit       string  `json:"unit"`
+	RecordedAt string  `json:"recordedAt"`
+}
+
+// MeasurementPoint 把同一时间点的多条指标合并成一个点，方便前端直接画曲线。
+type MeasurementPoint struct {
+	Timestamp string        `json:"timestamp"`
+	Metrics   []Measurement `json:"metrics"`
+}
+
+type MeasurementPage struct {
+	Items    []MeasurementPoint `json:"items"`
+	Total    int                `json:"total"`
+	Page     int                `json:"page"`
+	PageSize int                `json:"pageSize"`
 }

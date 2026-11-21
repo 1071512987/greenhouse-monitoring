@@ -14,6 +14,9 @@ release/
 coverage/
 .tmp/
 tmp/
+backend/*.db
+backend/*.db-wal
+backend/*.db-shm
 
 # Local configuration and secrets
 .env

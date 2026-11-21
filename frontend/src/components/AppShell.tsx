@@ -1,12 +1,11 @@
 import { useState, type ReactNode } from 'react'
 import {
-  Bot, ChevronRight, CloudSun, Cpu, Dog, Gauge, LayoutDashboard,
-  Leaf, Menu, MessageCircleQuestion, Radio, Router, ScanLine, Sprout,
-  Sun, TestTubes, Thermometer, Wind, X,
+  Bot, ChevronRight, Dog, LayoutDashboard, Menu, MessageCircleQuestion,
+  Radio, ScanLine, Sprout, TestTubes, X,
 } from 'lucide-react'
 import { agentCatalog, getAgentDefinition } from '../lib/agentCatalog'
-import { getSensorCategory, sensorCategories } from '../lib/sensorCatalog'
-import type { AgentId, SensorCategoryId } from '../types'
+import { getSensorNavItem, getSensorVendor, sensorNavItems, sensorVendors } from '../lib/sensorCatalog'
+import type { AgentId, SensorVendorId } from '../types'
 import agentLogo from '../assets/branding/huanong-agent-logo.webp'
 import brandWordmark from '../assets/branding/huanong-zhikong-wordmark.png'
 import hzauLogo from '../assets/branding/hzau-logo-white.png'
@@ -21,17 +20,6 @@ const navigation = [
   { id: 'agent' as const, label: '智能体中心', hint: '六类专职智能体', icon: Bot },
 ]
 
-const categoryIcons = {
-  air: Thermometer,
-  co2: Wind,
-  light: Sun,
-  leaf: Leaf,
-  soil: Sprout,
-  weather: CloudSun,
-  gateway: Router,
-  controller: Cpu,
-}
-
 const agentIcons = {
   environment: Bot,
   fertilizer: TestTubes,
@@ -43,25 +31,23 @@ const agentIcons = {
 
 interface AppShellProps {
   page: PageId
-  sensorCategory: SensorCategoryId
+  sensorVendor: SensorVendorId
+  sensorId: string
   agentId: AgentId
   onNavigate: (page: PageId) => void
-  onSensorCategoryChange: (category: SensorCategoryId) => void
+  onSelectSensor: (vendor: SensorVendorId, id: string) => void
   onAgentChange: (agent: AgentId) => void
   children: ReactNode
 }
 
-export function AppShell({ page, sensorCategory, agentId, onNavigate, onSensorCategoryChange, onAgentChange, children }: AppShellProps) {
+export function AppShell({ page, sensorVendor, sensorId, agentId, onNavigate, onSelectSensor, onAgentChange, children }: AppShellProps) {
   const [open, setOpen] = useState(false)
+  const [openVendor, setOpenVendor] = useState<SensorVendorId | null>(sensorVendor)
   const current = navigation.find((item) => item.id === page)!
-  const sensorCurrent = getSensorCategory(sensorCategory)
+  const vendorCurrent = getSensorVendor(sensorVendor)
+  const sensorCurrentItem = getSensorNavItem(sensorId)
   const agentCurrent = getAgentDefinition(agentId)
   const navigate = (next: PageId) => { onNavigate(next); setOpen(false) }
-  const selectSensorCategory = (category: SensorCategoryId) => {
-    onSensorCategoryChange(category)
-    onNavigate('sensors')
-    setOpen(false)
-  }
   const selectAgent = (nextAgent: AgentId) => {
     onAgentChange(nextAgent)
     onNavigate('agent')
@@ -84,18 +70,31 @@ export function AppShell({ page, sensorCategory, agentId, onNavigate, onSensorCa
             return <div className={isGroup ? 'navigation__group' : undefined} key={item.id}>
               <button
                 className={active ? (isGroup ? 'is-parent-active' : 'is-active') : ''}
-                onClick={() => isSensorParent ? selectSensorCategory('all') : isAgentParent ? selectAgent(agentId) : navigate(item.id)}
+                onClick={() => isSensorParent ? (setOpenVendor(sensorVendor), onSelectSensor(sensorVendor, 'all')) : isAgentParent ? selectAgent(agentId) : navigate(item.id)}
                 aria-expanded={isGroup ? active : undefined}
               >
                 <Icon size={18} /><span><b>{item.label}</b><small>{item.hint}</small></span>
                 {isGroup ? <ChevronRight className={`navigation__chevron ${active ? 'is-open' : ''}`} size={14} /> : null}
               </button>
-              {isSensorParent && active ? <div className="navigation__sub" aria-label="传感器分类">
-                {sensorCategories.slice(1).map((category) => {
-                  const CategoryIcon = categoryIcons[category.id as keyof typeof categoryIcons] ?? Gauge
-                  return <button className={sensorCategory === category.id ? 'is-active' : ''} onClick={() => selectSensorCategory(category.id)} key={category.id}>
-                    <CategoryIcon size={14} /><span><b>{category.label}</b><small>{category.model}</small></span>
-                  </button>
+              {isSensorParent && active ? <div className="navigation__sub" aria-label="传感器来源">
+                {sensorVendors.map((vendor) => {
+                  const expanded = openVendor === vendor.id
+                  const vendorActive = sensorVendor === vendor.id
+                  const items = sensorNavItems.filter((sensor) => sensor.vendorId === vendor.id)
+                  return <div className="navigation__subgroup" key={vendor.id}>
+                    <button className={vendorActive ? 'is-vendor-active' : ''} onClick={() => { setOpenVendor(expanded ? null : vendor.id); onSelectSensor(vendor.id, 'all') }} aria-expanded={expanded}>
+                      <span><b>{vendor.label}</b><small>{vendor.hint}</small></span>
+                      <ChevronRight className={`navigation__chevron ${expanded ? 'is-open' : ''}`} size={14} />
+                    </button>
+                    {expanded ? <>
+                      <button className={vendorActive && sensorId === 'all' ? 'is-active' : ''} onClick={() => onSelectSensor(vendor.id, 'all')}>
+                        <span><b>全部设备</b><small>汇总</small></span>
+                      </button>
+                      {items.map((sensor) => <button className={vendorActive && sensorId === sensor.id ? 'is-active' : ''} onClick={() => onSelectSensor(vendor.id, sensor.id)} key={sensor.id}>
+                        <span><b>{sensor.label}</b><small>{sensor.hint}</small></span>
+                      </button>)}
+                    </> : null}
+                  </div>
                 })}
               </div> : null}
               {isAgentParent && active ? <div className="navigation__sub navigation__sub--agents" aria-label="智能体分类">
@@ -118,9 +117,9 @@ export function AppShell({ page, sensorCategory, agentId, onNavigate, onSensorCa
           <button className="menu-button" onClick={() => setOpen(true)} aria-label="打开菜单"><Menu size={20} /></button>
           <div className="topbar__title">
             {page === 'dashboard' ? <h1>环境总览</h1> : <h1 className="topbar__breadcrumb">
-              <span className="topbar__parent">{page === 'sensors' ? '传感器' : '智能体中心'}</span>
+              <span className="topbar__parent">{page === 'sensors' ? vendorCurrent.label : '智能体中心'}</span>
               <ChevronRight aria-hidden="true" />
-              <strong className="topbar__current">{page === 'sensors' ? sensorCurrent.label : agentCurrent.label}</strong>
+              <strong className="topbar__current">{page === 'sensors' ? (sensorId === 'all' ? '全部设备' : sensorCurrentItem?.label ?? '全部设备') : agentCurrent.label}</strong>
             </h1>}
           </div>
           <div className="topbar__meta"><time>{new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date())}</time><div className="topbar__institution"><img src={hzauLogo} alt="华中农业大学"/></div></div>

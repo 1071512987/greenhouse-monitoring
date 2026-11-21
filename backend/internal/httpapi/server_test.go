@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"greenhouse-monitoring/internal/store"
 )
 
 func request(t *testing.T, handler http.Handler, method, path string, body any) *httptest.ResponseRecorder {
@@ -33,7 +35,7 @@ func decodeMap(t *testing.T, res *httptest.ResponseRecorder) map[string]any {
 }
 
 func TestHealth(t *testing.T) {
-	handler := NewServer("")
+	handler := NewServer("", store.New())
 	res := request(t, handler, http.MethodGet, "/api/health", nil)
 	if res.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", res.Code, res.Body.String())
@@ -44,7 +46,7 @@ func TestHealth(t *testing.T) {
 }
 
 func TestDashboardAndSensors(t *testing.T) {
-	handler := NewServer("")
+	handler := NewServer("", store.New())
 	dashboard := request(t, handler, http.MethodGet, "/api/dashboard", nil)
 	if dashboard.Code != http.StatusOK {
 		t.Fatalf("dashboard status=%d", dashboard.Code)
@@ -65,14 +67,14 @@ func TestDashboardAndSensors(t *testing.T) {
 	if err := json.Unmarshal(sensors.Body.Bytes(), &sensorBody); err != nil || len(sensorBody) < 4 {
 		t.Fatalf("expected sensor list, err=%v body=%s", err, sensors.Body.String())
 	}
-	models := map[string]bool{}
+	ids := map[string]bool{}
 	for _, sensor := range sensorBody {
-		model, _ := sensor["model"].(string)
-		models[model] = true
+		id, _ := sensor["id"].(string)
+		ids[id] = true
 	}
-	for _, model := range []string{"PH-WSD-2G", "PH-CO2-2H", "PH-GZ-1A", "PH-YMX-2K", "PH-TRWS-3C", "PH-CJ-01", "PH-QX7", "Sugon RI V1.0", "GWB-6030H"} {
-		if !models[model] {
-			t.Errorf("sensor inventory must include model %s", model)
+	for _, id := range []string{"indoor-air", "indoor-co2", "indoor-light", "indoor-leaf", "indoor-soil", "outdoor-weather"} {
+		if !ids[id] {
+			t.Errorf("sensor inventory must include device %s", id)
 		}
 	}
 	if _, ok := sensorBody[0]["metrics"]; !ok {
@@ -81,7 +83,7 @@ func TestDashboardAndSensors(t *testing.T) {
 }
 
 func TestAgentRunValidationAndHistory(t *testing.T) {
-	handler := NewServer("")
+	handler := NewServer("", store.New())
 	empty := request(t, handler, http.MethodPost, "/api/agent/runs", map[string]any{"sourceName": "empty.csv", "observations": []any{}})
 	if empty.Code != http.StatusBadRequest {
 		t.Fatalf("empty observations status=%d body=%s", empty.Code, empty.Body.String())
@@ -114,7 +116,7 @@ func TestAgentRunValidationAndHistory(t *testing.T) {
 }
 
 func TestEmptyAgentHistoryIsJSONArray(t *testing.T) {
-	handler := NewServer("")
+	handler := NewServer("", store.New())
 	history := request(t, handler, http.MethodGet, "/api/agent/runs", nil)
 	if history.Code != http.StatusOK {
 		t.Fatalf("history status=%d", history.Code)

@@ -5,20 +5,19 @@
 ## 功能概览
 
 - 单屏 Dashboard：环境指标、24 小时趋势、分区状态、系统健康度和异常提醒
-- 传感器中心：按设备类别浏览，支持查看全部设备汇总和在线状态
+- 传感器中心：按厂商（新普惠 HTTP / 华创科技 MQTT）分级浏览设备，支持查看实时读数和分页历史曲线
 - 智能体中心：按业务拆分六类专职智能体，分别提供环境调控、精准施肥、机器狗巡检、RGBD 表型鉴定、作物模型和农机问答工作区
 - 全栈服务：React 前端通过 `/api` 访问 Go HTTP API，生产环境可由 Go 服务直接托管前端静态文件
 - 品牌化界面：使用华中农业大学与华农智能体视觉资源，主题色为 `#09803a`
 
-## 已覆盖设备
+## 已接入设备（南宁温室）
 
-| 类别 | 型号/设备 |
-| --- | --- |
-| 空气环境 | 空气温湿度传感器 PH-WSD-2G、二氧化碳传感器 PH-CO2-2H、光照传感器 PH-GZ-1A |
-| 作物冠层 | 叶面积温湿度传感器 PH-YMX-2K / SL-PH-YWS |
-| 土壤环境 | 土壤温湿度、盐分、电导率传感器 PH-TRWS-3C |
-| 气象监测 | 多功能气象站 PH-QX7 / QX1202G |
-| 采集与控制 | 数据采集终端 PH-CJ-01、曙光网络 Sugon RI V1.0 控制器、GWB-6030H 工控机 |
+传感器页按两家厂商分开展示，两路是独立硬件，数值不合并：
+
+| 厂商 | 接入方式 | 传感器 |
+| --- | --- | --- |
+| 新普惠 | 云平台 HTTP | 空气温湿度（温度/湿度各两套）、二氧化碳、光照、叶面温湿度、土壤综合、室外气象站 |
+| 华创科技 | 控制器 MQTT | 室外气象站、多要素传感器×2、电子式温湿度计（CO₂）×2 |
 
 ## 技术栈
 
@@ -103,8 +102,41 @@ npm run build
 | GET | `/api/health` | 服务健康状态 |
 | GET | `/api/dashboard` | 环境历史、分区、告警和系统健康度 |
 | GET | `/api/sensors` | 传感器与控制设备目录 |
+| GET | `/api/sensors/{id}/measurements` | 某台设备的分页历史测量值（`page`/`pageSize`/`metric`） |
 | GET | `/api/agent/runs` | Agent 运行历史 |
 | POST | `/api/agent/runs` | 导入观测记录并执行推理 |
+
+## 智能问答代理
+
+首页「智能问答」通过 Go 后端同源代理到设施蔬菜问答服务（SSE 流式）：
+
+- `/api/assistant/*` → `ASSISTANT_API_URL`（默认 `http://211.69.141.64:8089/api/v1`）
+- 需要鉴权时设置 `ASSISTANT_API_KEY`，代理会自动注入 `X-API-Key` 请求头
+
+## 南宁温室数据接入
+
+后端内置两个采集器，都只读、不下发控制指令：
+
+- 新普惠 HTTP：启动时回补最近 24 小时历史，之后每 60 秒轮询一次实时接口；
+- 华创科技 MQTT：长连接订阅控制器上报，并周期性发 `getStatusTopic` 只读请求刷新；
+- 两路数据分别落在 SQLite 的两张表（`measurements` / `mqtt_measurements`），重复的「设备 + 指标 + 时间」自动去重；
+- 传感器页点击任意设备即可查看实时读数和分页历史曲线。
+
+可用环境变量（都有内置默认值，开箱即用）：
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `GREENHOUSE_DB` | `greenhouse.db` | SQLite 文件路径 |
+| `NANNING_PLATFORM_BASE` | `http://115.28.187.9:8005` | 厂商平台接口地址 |
+| `NANNING_PLATFORM_USER` | `038085047` | 平台账号 |
+| `NANNING_PLATFORM_PASS` | `123456` | 平台密码 |
+| `NANNING_COLLECT_INTERVAL` | `120` | 实时采集间隔（秒） |
+| `NANNING_BACKFILL` | `86400` | 启动时回补历史时长（秒） |
+| `NANNING_MQTT_BROKER` | `39.107.83.23:1883` | 控制器 MQTT 服务器 |
+| `NANNING_MQTT_USER` | `ZNHKWS1` | MQTT 账号 |
+| `NANNING_MQTT_PASS` | `123456` | MQTT 密码 |
+| `NANNING_MQTT_TERMINAL` | `19251201894` | 控制器终端编号 |
+| `NANNING_MQTT_INTERVAL` | `120` | MQTT 读取请求间隔（秒） |
 
 ## 接入真实数据与 Agent
 
